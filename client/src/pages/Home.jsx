@@ -3,7 +3,7 @@ import { Copy, Check } from "lucide-react";
 import TextInput from "../components/TextInput";
 import FormatDropdown from "../components/FormatDropdown";
 import ChartDisplay from "../components/ChartDisplay";
-import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
 import { MoonLoader } from "react-spinners";
 
 const themes = [
@@ -44,7 +44,7 @@ const Home = () => {
     setIsLoading(true);
 
     try {
-      const { data } = await axios.post("http://localhost:5000/api/command/process", {
+      const { data } = await axiosInstance.post("/api/command/process", {
         command_output: commandOutput,
         user_prompt: userPrompt,
       });
@@ -62,27 +62,27 @@ const Home = () => {
 
   const handleExport = async () => {
     if (!responseData) return;
-  
+
     setIsExporting(true);
     setError(null);
     setDownloadLink("");
-  
+
     try {
       const payload =
         typeof responseData === "object"
           ? JSON.parse(JSON.stringify(responseData))
           : responseData;
-  
-      const res = await axios.post("http://localhost:5000/api/export/", {
+
+      const res = await axiosInstance.post("/api/export/", {
         data: payload,
         format,
         filename: `${Date.now()}`,
       });
-  
-      const cloudinaryUrl = res.data.fileUrl;  // This is the URL returned from Cloudinary
+
+      const cloudinaryUrl = res.data.fileUrl;
       if (!cloudinaryUrl) throw new Error("No file URL returned");
-  
-      setDownloadLink(cloudinaryUrl);  // Set the URL to the download link
+
+      setDownloadLink(cloudinaryUrl);
     } catch (err) {
       console.error("Export error:", err);
       setError("❌ Failed to export data.");
@@ -92,20 +92,25 @@ const Home = () => {
   };
 
   const triggerBackendDownload = async (filename) => {
-    const response = await axios.get(`http://localhost:5000/api/download/${filename}`, {
-      responseType: "blob",
-    });
+    try {
+      const response = await axiosInstance.get(`/api/download/${filename}`, {
+        responseType: "blob",
+      });
 
-    const blob = new Blob([response.data]);
-    const blobUrl = window.URL.createObjectURL(blob);
+      const blob = new Blob([response.data]);
+      const blobUrl = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(blobUrl);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download failed:", err);
+      setError("❌ File download failed.");
+    }
   };
 
   const handleCopy = (value, key) => {
@@ -128,9 +133,8 @@ const Home = () => {
 
     try {
       const urlParts = downloadLink.split("/");
-      const filename = urlParts[urlParts.length - 1]; // Extract filename from Cloudinary URL
-
-      await triggerBackendDownload(filename); // Use backend route for file download
+      const filename = urlParts[urlParts.length - 1];
+      await triggerBackendDownload(filename);
     } catch (err) {
       console.error("Download failed:", err);
       setError("❌ File download failed.");
