@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1d4ed8; /* Tailwind Blue */
+  --color-secondary: #9333ea; /* Tailwind Purple */
+  --font-body: 'Inter', sans-serif;
+  --spacing-lg: 2rem;
+  --breakpoint-md: 768px;
+}
